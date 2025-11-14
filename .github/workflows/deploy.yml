@@ -14,23 +14,25 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
     
-    - name: Deploy to Raspberry Pi
-      uses: appleboy/ssh-action@v1.0.0
+    - name: Deploy to Raspberry Pi via SSH
+      uses: appleboy/ssh-action@v1.0.3
       with:
         host: ${{ secrets.PI_HOST }}
         username: ${{ secrets.PI_USER }}
         key: ${{ secrets.PI_SSH_KEY }}
         port: ${{ secrets.PI_PORT || 22 }}
         script: |
-          cd ${{ secrets.PI_DEPLOY_PATH }}/cajasAvi
+          cd ${{ secrets.PI_DEPLOY_PATH }}/cajasAvi || exit 1
+          
+          echo "📥 Actualizando código desde GitHub..."
           git pull origin main
           
-          # Instalar dependencias del frontend si es necesario
+          echo "📦 Instalando dependencias del frontend..."
           if [ -f "package.json" ]; then
             npm install
           fi
           
-          # Instalar dependencias del backend si es necesario
+          echo "📦 Instalando dependencias del backend..."
           if [ -d "server" ]; then
             cd server
             if [ -f "package.json" ]; then
@@ -39,13 +41,20 @@ jobs:
             cd ..
           fi
           
-          # Reconstruir frontend
+          echo "🏗️ Construyendo frontend..."
           npm run build
           
-          # Reiniciar servicios Docker si están corriendo
-          if docker ps | grep -q "api-cajas"; then
-            docker-compose restart api-cajas
+          echo "🐳 Reiniciando servicios Docker..."
+          if command -v docker-compose &> /dev/null; then
+            if docker-compose ps 2>/dev/null | grep -q "api-cajas"; then
+              docker-compose restart api-cajas
+              echo "✅ Servicio api-cajas reiniciado"
+            fi
+          elif command -v docker &> /dev/null; then
+            if docker ps | grep -q "api-cajas"; then
+              docker restart api-cajas
+              echo "✅ Contenedor api-cajas reiniciado"
+            fi
           fi
           
           echo "✅ Despliegue completado exitosamente"
-
