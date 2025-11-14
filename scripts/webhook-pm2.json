@@ -1,0 +1,18 @@
+{
+  "name": "cajas-avi-webhook",
+  "script": "webhook-server.js",
+  "cwd": "./scripts",
+  "instances": 1,
+  "exec_mode": "fork",
+  "env": {
+    "WEBHOOK_PORT": "3001",
+    "WEBHOOK_SECRET": ""
+  },
+  "error_file": "./logs/webhook-error.log",
+  "out_file": "./logs/webhook-out.log",
+  "log_date_format": "YYYY-MM-DD HH:mm:ss Z",
+  "merge_logs": true,
+  "autorestart": true,
+  "watch": false
+}
+

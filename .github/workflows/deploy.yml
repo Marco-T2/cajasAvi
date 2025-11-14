@@ -1,0 +1,51 @@
+name: Deploy to Raspberry Pi
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Deploy to Raspberry Pi
+      uses: appleboy/ssh-action@v1.0.0
+      with:
+        host: ${{ secrets.PI_HOST }}
+        username: ${{ secrets.PI_USER }}
+        key: ${{ secrets.PI_SSH_KEY }}
+        port: ${{ secrets.PI_PORT || 22 }}
+        script: |
+          cd ${{ secrets.PI_DEPLOY_PATH }}/cajasAvi
+          git pull origin main
+          
+          # Instalar dependencias del frontend si es necesario
+          if [ -f "package.json" ]; then
+            npm install
+          fi
+          
+          # Instalar dependencias del backend si es necesario
+          if [ -d "server" ]; then
+            cd server
+            if [ -f "package.json" ]; then
+              npm install
+            fi
+            cd ..
+          fi
+          
+          # Reconstruir frontend
+          npm run build
+          
+          # Reiniciar servicios Docker si están corriendo
+          if docker ps | grep -q "api-cajas"; then
+            docker-compose restart api-cajas
+          fi
+          
+          echo "✅ Despliegue completado exitosamente"
+
